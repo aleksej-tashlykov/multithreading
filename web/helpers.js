@@ -61,11 +61,16 @@ function addMatrices(matrixA, matrixB) {
 		throw new Error('Матрицы должны иметь одинаковые размеры');
 	}
 
+	const result = [];
+
 	for (let i = 0; i < matrixA.length; i++) {
+		result[i] = [];
 		for (let j = 0; j < matrixB[0].length; j++) {
-			matrixA[i][j] + matrixB[i][j];
+			result[i][j] = matrixA[i][j] + matrixB[i][j];
 		}
 	}
+
+	return result;
 }
 
 function splitMatrixIntoChunks(matrix, chunk) {
@@ -100,6 +105,28 @@ function splitMatrixIntoChunks(matrix, chunk) {
 	return parts;
 }
 
+function mergeMatrixChunk(chunks) {
+	let totalRows = 0;
+	for (let i = 0; i < chunks.length; i++) {
+		totalRows += chunks[i].length;
+	}
+
+	const cols = chunks[0][0].length;
+	const result = createMatrix(totalRows, cols);
+
+	let rowIndex = 0;
+	for (let i = 0; i < chunks.length; i++) {
+		for (let j = 0; j < chunks[i].length; j++) {
+			for (let k = 0; k < cols.length; k++) {
+				result[rowIndex][k] = chunks[i][j][k];
+			}
+			rowIndex++;
+		}
+	}
+
+	return result;
+}
+
 function multiThreadWorkers(matrixA, matrixB, threadCount) {
 	return new Promise((resolve) => {
 		const startTime = performance.now();
@@ -109,6 +136,7 @@ function multiThreadWorkers(matrixA, matrixB, threadCount) {
 
 		const workers = [];
 		let completed = 0;
+		const workerResults = [];
 
 		for (let i = 0; i < threadCount; i++) {
 			const worker = new Worker(new URL('./worker.js', import.meta.url), {
@@ -117,6 +145,7 @@ function multiThreadWorkers(matrixA, matrixB, threadCount) {
 			workers[i] = worker;
 
 			worker.onmessage = function (event) {
+				workerResults[event.data.chunkIndex] = event.data.result;
 				completed++;
 
 				if (completed === threadCount) {
@@ -126,11 +155,15 @@ function multiThreadWorkers(matrixA, matrixB, threadCount) {
 					for (let j = 0; j < workers.length; j++) {
 						workers[j].terminate();
 					}
-
-					resolve(duration);
+					const finalResult = mergeMatrixChunk(workerResults);
+					resolve({ duration: duration, result: finalResult });
 				}
 			};
-			worker.postMessage({ chunkA: chunkA[i], chunkB: chunkB[i] });
+			worker.postMessage({
+				chunkA: chunkA[i],
+				chunkB: chunkB[i],
+				chunkIndex: i,
+			});
 		}
 	});
 }
@@ -140,5 +173,6 @@ export {
 	fillMatrixRandomNumbers,
 	addMatrices,
 	splitMatrixIntoChunks,
+	mergeMatrixChunk,
 	multiThreadWorkers,
 };

@@ -31,6 +31,7 @@ if (!window.Worker) {
 	throw new Error('Браузер не поддерживает Web Workers.');
 }
 
+let singleWorkerResultMatrix;
 const startTimeWorker = performance.now();
 const worker = new Worker(new URL('./worker.js', import.meta.url), {
 	type: 'module',
@@ -38,12 +39,14 @@ const worker = new Worker(new URL('./worker.js', import.meta.url), {
 worker.onmessage = function (event) {
 	const endTimeWorker = performance.now();
 	const timeDurationWorker = endTimeWorker - startTimeWorker;
+	singleWorkerResultMatrix = event.data.result;
 
 	console.log(
 		`Время, затраченное на сложение в одном воркере: ${timeDurationWorker.toFixed(
 			2
 		)} МС`
 	);
+	console.log(`Результат получен от воркера`);
 
 	worker.terminate();
 
@@ -60,7 +63,7 @@ async function multithreadedAddition() {
 	console.log('Многопоточное сложение');
 
 	for (let i = 2; i <= 10; i++) {
-		const duration = await multiThreadWorkers(matrixA, matrixB, i);
-		console.log(`${i} потока(ов): ${duration.toFixed(2)} МС`);
+		const data = await multiThreadWorkers(matrixA, matrixB, i);
+		console.log(`${i} потока(ов): ${data.duration.toFixed(2)} МС`);
 	}
 }
