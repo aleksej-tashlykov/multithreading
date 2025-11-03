@@ -117,7 +117,7 @@ function mergeMatrixChunk(chunks) {
 	let rowIndex = 0;
 	for (let i = 0; i < chunks.length; i++) {
 		for (let j = 0; j < chunks[i].length; j++) {
-			for (let k = 0; k < cols.length; k++) {
+			for (let k = 0; k < cols; k++) {
 				result[rowIndex][k] = chunks[i][j][k];
 			}
 			rowIndex++;
@@ -129,14 +129,10 @@ function mergeMatrixChunk(chunks) {
 
 function multiThreadWorkers(matrixA, matrixB, threadCount) {
 	return new Promise((resolve) => {
-		const startTime = performance.now();
-
 		const chunkA = splitMatrixIntoChunks(matrixA, threadCount);
 		const chunkB = splitMatrixIntoChunks(matrixB, threadCount);
 
 		const workers = [];
-		let completed = 0;
-		const workerResults = [];
 
 		for (let i = 0; i < threadCount; i++) {
 			const worker = new Worker(new URL('./worker.js', import.meta.url), {
@@ -144,27 +140,14 @@ function multiThreadWorkers(matrixA, matrixB, threadCount) {
 			});
 			workers[i] = worker;
 
-			worker.onmessage = function (event) {
-				workerResults[event.data.chunkIndex] = event.data.result;
-				completed++;
-
-				if (completed === threadCount) {
-					const endTime = performance.now();
-					const duration = endTime - startTime;
-
-					for (let j = 0; j < workers.length; j++) {
-						workers[j].terminate();
-					}
-					const finalResult = mergeMatrixChunk(workerResults);
-					resolve({ duration: duration, result: finalResult });
-				}
-			};
 			worker.postMessage({
 				chunkA: chunkA[i],
 				chunkB: chunkB[i],
 				chunkIndex: i,
 			});
 		}
+
+		resolve(workers);
 	});
 }
 

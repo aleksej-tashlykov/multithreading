@@ -3,5 +3,5 @@ import { addMatrices } from './helpers.js';
 self.onmessage = function (event) {
 	const { chunkA, chunkB, chunkIndex } = event.data;
 	const result = addMatrices(chunkA, chunkB);
-	self.postMessage({ done: true, result: result, chunkIndex: chunkIndex });
+	self.postMessage({ result, chunkIndex });
 };

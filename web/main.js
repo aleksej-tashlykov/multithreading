@@ -2,10 +2,11 @@ import {
 	createMatrix,
 	fillMatrixRandomNumbers,
 	addMatrices,
+	mergeMatrixChunk,
 	multiThreadWorkers,
 } from './helpers.js';
 
-const numberMatrixElements = 5000;
+const numberMatrixElements = 4_100;
 const min = 1;
 const max = 10;
 
@@ -31,15 +32,14 @@ if (!window.Worker) {
 	throw new Error('Браузер не поддерживает Web Workers.');
 }
 
-let singleWorkerResultMatrix;
-const startTimeWorker = performance.now();
 const worker = new Worker(new URL('./worker.js', import.meta.url), {
 	type: 'module',
 });
+
+const startTimeWorker = performance.now();
 worker.onmessage = function (event) {
 	const endTimeWorker = performance.now();
 	const timeDurationWorker = endTimeWorker - startTimeWorker;
-	singleWorkerResultMatrix = event.data.result;
 
 	console.log(
 		`Время, затраченное на сложение в одном воркере: ${timeDurationWorker.toFixed(
@@ -59,11 +59,32 @@ worker.onerror = function (error) {
 
 worker.postMessage({ chunkA: matrixA, chunkB: matrixB });
 
-async function multithreadedAddition() {
+function multithreadedAddition() {
 	console.log('Многопоточное сложение');
 
 	for (let i = 2; i <= 10; i++) {
-		const data = await multiThreadWorkers(matrixA, matrixB, i);
-		console.log(`${i} потока(ов): ${data.duration.toFixed(2)} МС`);
+		multiThreadWorkers(matrixA, matrixB, i).then((workers) => {
+			const startTime = performance.now();
+			let completed = 0;
+			const workerResults = [];
+			for (let j = 0; j < workers.length; j++) {
+				workers[j].onmessage = function (event) {
+					workerResults[event.data.chunkIndex] = event.data.result;
+					completed++;
+
+					if (completed === i) {
+						const endTime = performance.now();
+						const duration = endTime - startTime;
+
+						for (let k = 0; k < workers.length; k++) {
+							workers[k].terminate();
+						}
+
+						mergeMatrixChunk(workerResults);
+						console.log(`${i} потока(ов): ${duration.toFixed(2)} МС`);
+					}
+				};
+			}
+		});
 	}
 }
