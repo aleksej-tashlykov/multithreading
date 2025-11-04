@@ -77,6 +77,11 @@ function splitMatrixIntoChunks(matrix, chunk) {
 	if (chunk <= 0) {
 		throw new Error('Количество частей должно быть положительным числом');
 	}
+
+	if (chunk === 1) {
+		return [matrix];
+	}
+
 	const parts = [];
 	const baseSize = Math.floor(matrix.length / chunk);
 	const extraParts = matrix.length % chunk;
@@ -128,6 +133,10 @@ function mergeMatrixChunk(chunks) {
 }
 
 function multiThreadWorkers(matrixA, matrixB, threadCount) {
+	if (threadCount <= 0) {
+		throw new Error('Количество частей должно быть положительным числом');
+	}
+
 	return new Promise((resolve) => {
 		const chunkA = splitMatrixIntoChunks(matrixA, threadCount);
 		const chunkB = splitMatrixIntoChunks(matrixB, threadCount);
