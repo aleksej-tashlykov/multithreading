@@ -1,8 +1,8 @@
-import { addMatrices } from './helpers.js';
-import { parentPort } from 'worker_threads';
+import { addMatrices } from './helpers/matrixHelpers.js';
+import { parentPort } from 'node:worker_threads';
 
 parentPort.on('message', (data) => {
-	const { chunkA, chunkB } = data;
-	addMatrices(chunkA, chunkB);
-	parentPort.postMessage({ done: true });
+	const { chunkA, chunkB, chunkIndex } = data;
+	const result = addMatrices(chunkA, chunkB);
+	parentPort.postMessage({ result, chunkIndex });
 });
