@@ -1,8 +1,0 @@
-{
-	"name": "matrix-worker-threads",
-	"type": "module",
-	"scripts": {
-		"main": "node main.js"
-	},
-	"dependencies": {}
-}
