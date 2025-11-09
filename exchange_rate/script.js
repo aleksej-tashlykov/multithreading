@@ -21,20 +21,29 @@ const currencyNames =
 function uploadingData() {
 	return new Promise((resolve, reject) => {
 		const data = {};
+		let count = 0;
 
 		fetchData(exchangeRates)
 			.then((rates) => {
 				data.exchangeRates = rates;
+				count++;
 
-				return fetchData(currencyNames);
+				if (count === 2) {
+					resolve(data);
+				}
 			})
+			.catch((error) => reject(error));
+
+		fetchData(currencyNames)
 			.then((names) => {
 				data.currencyNames = names;
-				resolve(data);
+				count++;
+
+				if (count === 2) {
+					resolve(data);
+				}
 			})
-			.catch((error) => {
-				reject(error);
-			});
+			.catch((error) => reject(error));
 	});
 }
 
